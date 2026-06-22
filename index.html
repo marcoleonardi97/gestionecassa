@@ -1,1 +1,818 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cassa Comune</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+html,body{margin:0;padding:0;background:#EAEEEC;}
+#root{min-height:100vh;}
+.of-root{
+  --paper:#EAEEEC; --surface:#FFFFFF; --ink:#15242B; --ink-soft:#5C6E74;
+  --dim:#8A989D; --line:#D6DEDB; --line-soft:#E7ECEA;
+  --green:#0E7A59; --green-deep:#0A5B43; --amber:#A9711A; --brick:#A5392B;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --ink-grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='2'/><feColorMatrix type='matrix' values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.4 1.15'/></filter><rect width='40' height='40' filter='url(%23n)'/></svg>");
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  min-height:100vh; line-height:1.45; -webkit-font-smoothing:antialiased;
+}
+.of-root *{box-sizing:border-box;}
+.of-num{font-family:var(--mono); font-variant-numeric:tabular-nums;}
+.of-brick{color:var(--brick) !important;}
+.of-boot{padding:64px; text-align:center; color:var(--ink-soft); font-family:var(--mono);}
+.of-link{appearance:none; border:0; background:none; padding:0; cursor:pointer; font:inherit; font-size:12.5px;
+  color:var(--green-deep); font-weight:600; text-decoration:underline; text-underline-offset:2px; display:inline-block; margin-top:3px;}
+.of-mark{display:inline-grid; place-items:center; width:56px; height:56px; border:2px solid var(--ink);
+  border-radius:12px; font-family:var(--mono); font-size:28px; font-weight:700; color:var(--ink);
+  background:var(--surface); box-shadow:3px 3px 0 var(--ink);}
+.of-mark-sm{width:34px; height:34px; font-size:18px; border-radius:8px; box-shadow:2px 2px 0 var(--ink);}
+.of-lang{appearance:none; font:inherit; font-size:13px; font-weight:600; color:var(--ink);
+  background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:7px 9px; cursor:pointer;}
+.of-onboard{display:grid; place-items:center; min-height:100vh; padding:24px; position:relative;}
+.of-onboard-lang{position:absolute; top:18px; right:18px;}
+.of-onboard-card{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:36px;
+  max-width:440px; width:100%; text-align:center; box-shadow:0 20px 50px -30px rgba(21,36,43,.5);}
+.of-onboard-card h1{margin:18px 0 6px; font-size:30px; letter-spacing:-.02em;}
+.of-lede{color:var(--ink-soft); margin:0 0 24px;}
+.of-fine{color:var(--dim); font-size:12.5px; margin:16px 0 0;}
+.of-header{display:flex; align-items:center; gap:16px; padding:14px 20px; background:var(--surface);
+  border-bottom:1px solid var(--line); flex-wrap:wrap; position:sticky; top:0; z-index:5;}
+.of-brand{display:flex; align-items:center; gap:11px;}
+.of-brand-text{display:flex; flex-direction:column; line-height:1.1;}
+.of-brand-text strong{font-size:16px; letter-spacing:-.01em;}
+.of-brand-text span{font-size:11.5px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em;}
+.of-tabs{display:flex; gap:4px; margin:0 auto; background:var(--paper); padding:4px; border-radius:11px; border:1px solid var(--line-soft);}
+.of-tab{appearance:none; border:0; background:transparent; cursor:pointer; font:inherit; font-size:13.5px; font-weight:600; color:var(--ink-soft); padding:8px 16px; border-radius:8px;}
+.of-tab.is-on{background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(21,36,43,.12);}
+.of-who{display:flex; align-items:center; gap:8px;}
+.of-refresh{appearance:none; border:1px solid var(--line); background:var(--surface); width:34px; height:34px; border-radius:9px; cursor:pointer; color:var(--ink-soft); font-size:15px;}
+.of-whoami{appearance:none; border:1px solid var(--line); background:var(--surface); cursor:pointer; font:inherit; font-size:13px; font-weight:600; color:var(--ink); padding:8px 12px; border-radius:9px;}
+.of-refresh:hover,.of-whoami:hover{border-color:var(--ink-soft);}
+.of-main{padding:24px 20px 8px; max-width:1080px; margin:0 auto;}
+.of-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+.of-col{min-width:0;}
+.of-foot{text-align:center; color:var(--dim); font-size:12px; padding:22px 20px 28px;}
+.of-chip{display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:11px 16px; margin-bottom:18px;}
+.of-chip span{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft);}
+.of-chip strong{font-size:18px; color:var(--green-deep);}
+.of-chip.is-over strong{color:var(--brick);}
+.of-card{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:22px; margin-bottom:18px;}
+.of-card-head{margin-bottom:18px;}
+.of-card-head h2{margin:0; font-size:18px; letter-spacing:-.01em;}
+.of-card-head p{margin:4px 0 0; color:var(--ink-soft); font-size:13.5px;}
+.of-card-head-split{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
+.of-form{display:flex; flex-direction:column; gap:14px;}
+.of-field{display:flex; flex-direction:column; gap:6px;}
+.of-field>span{font-size:12px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.05em;}
+.of-field input,.of-field select,.of-field textarea{font:inherit; font-size:14.5px; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px; width:100%;}
+.of-field textarea{resize:vertical;}
+.of-field input:focus,.of-field select:focus,.of-field textarea:focus,.of-pin:focus,.of-search:focus,.of-set-row input:focus{outline:2px solid var(--green); outline-offset:1px; border-color:var(--green);}
+.of-drop{display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; cursor:pointer; border:1.5px dashed var(--line); border-radius:12px; padding:20px; color:var(--ink-soft); background:var(--paper);}
+.of-drop:hover{border-color:var(--green); color:var(--ink);}
+.of-drop-icon{font-size:24px;}
+.of-drop small{color:var(--dim); font-size:11.5px;}
+.of-photo{display:flex; gap:12px; align-items:flex-start;}
+.of-photo img{width:84px; height:84px; object-fit:cover; border-radius:10px; border:1px solid var(--line); cursor:zoom-in;}
+.of-photo-actions{display:flex; flex-direction:column; gap:8px;}
+.of-file{display:inline-flex; align-items:center; cursor:pointer;}
+.of-btn{appearance:none; cursor:pointer; font:inherit; font-weight:650; font-size:14px; border-radius:10px; padding:11px 16px; border:1px solid transparent; transition:transform .04s ease;}
+.of-btn:active{transform:translateY(1px);}
+.of-btn:disabled{opacity:.5; cursor:not-allowed;}
+.of-btn-primary{background:var(--ink); color:#fff;}
+.of-btn-primary:hover:not(:disabled){background:#0c1c22;}
+.of-btn-pay{background:var(--green); color:#fff; padding:8px 13px; font-size:13px;}
+.of-btn-pay:hover:not(:disabled){background:var(--green-deep);}
+.of-btn-ghost{background:var(--surface); color:var(--ink); border-color:var(--line); padding:8px 13px; font-size:13px;}
+.of-btn-ghost:hover:not(:disabled){border-color:var(--ink-soft);}
+.of-btn-danger{background:var(--brick); color:#fff;}
+.of-trash{appearance:none; cursor:pointer; background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:7px 9px; font-size:13px; line-height:1;}
+.of-trash:hover:not(:disabled){border-color:var(--brick); background:#fbeeec;}
+.of-trash:disabled{opacity:.5; cursor:not-allowed;}
+.of-hint{font-size:12.5px; color:var(--dim); margin:-4px 0 0;}
+.of-flash{font-size:13px; color:var(--green-deep); background:#e7f3ee; border:1px solid #bfe0d3; padding:9px 12px; border-radius:9px; margin:8px 0 0;}
+.of-warn{font-size:13px; color:var(--brick); background:#fbeeec; border:1px solid #f0cfca; padding:10px 12px; border-radius:9px; margin:0 0 4px;}
+.of-budget{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:18px 20px; margin-bottom:18px;}
+.of-budget-row{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
+.of-budget-cap{display:block; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft);}
+.of-budget-big{display:block; font-size:30px; margin-top:4px; color:var(--green-deep);}
+.of-gear{appearance:none; border:1px solid var(--line); background:var(--surface); cursor:pointer; font:inherit; font-size:13px; font-weight:600; color:var(--ink); padding:8px 12px; border-radius:9px;}
+.of-gear:hover{border-color:var(--ink-soft);}
+.of-budget-bar{height:9px; background:var(--paper); border-radius:6px; overflow:hidden; margin:12px 0 8px;}
+.of-budget-bar>span{display:block; height:100%; background:var(--green); border-radius:6px; transition:width .3s ease;}
+.of-budget-bar>span.is-over{background:var(--brick);}
+.of-budget-sub{font-size:12.5px; color:var(--ink-soft); font-family:var(--mono);}
+.of-owed{text-align:right; flex-shrink:0;}
+.of-owed span{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft);}
+.of-owed strong{font-size:19px; color:var(--amber);}
+.of-claims{list-style:none; margin:0; padding:0;}
+.of-claim{display:flex; gap:14px; padding:15px 0; border-top:1px solid var(--line-soft); align-items:flex-start;}
+.of-claim:first-child{border-top:0;}
+.of-claim-main{flex:1; min-width:0;}
+.of-claim-top{display:flex; align-items:center; gap:10px; margin-bottom:3px;}
+.of-cat{font-size:13px; font-weight:700;}
+.of-claim-meta{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+.of-claim-note{font-size:13px; color:var(--ink-soft); font-style:italic; margin-top:4px;}
+.of-claim-declined{font-size:12.5px; color:var(--brick); margin-top:5px; font-weight:600;}
+.of-claim-paid{font-size:12.5px; color:var(--green-deep); margin-top:5px; font-weight:600;}
+.of-claim-amt{font-size:16px; font-weight:700; flex-shrink:0;}
+.of-stamp{font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; padding:3px 9px; border:2.5px solid currentColor; border-radius:6px; display:inline-block; transform:rotate(-6deg); opacity:.9; line-height:1; -webkit-mask-image:var(--ink-grain); mask-image:var(--ink-grain);}
+.of-stamp-sm{font-size:10px; padding:2px 7px; border-width:2px;}
+.of-stamp-pending{color:var(--amber);}
+.of-stamp-paid{color:var(--green); animation:stampIn .25s ease;}
+.of-stamp-declined{color:var(--brick);}
+@keyframes stampIn{0%{transform:scale(1.5) rotate(-6deg); opacity:0;} 60%{transform:scale(.92) rotate(-6deg); opacity:1;} 100%{transform:scale(1) rotate(-6deg);}}
+.of-stats{display:grid; grid-template-columns:1fr 1fr 1.4fr; gap:14px; margin-bottom:18px;}
+.of-stat{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px;}
+.of-stat>span{font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:700;}
+.of-stat>strong{display:block; font-size:26px; margin:6px 0 2px;}
+.of-stat>small{color:var(--dim); font-size:12px;}
+.of-amber{color:var(--amber);} .of-green{color:var(--green-deep);}
+.of-bars{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:7px;}
+.of-bars li{display:grid; grid-template-columns:96px 1fr auto; align-items:center; gap:8px;}
+.of-bar-label{font-size:12px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.of-bar-track{height:8px; background:var(--paper); border-radius:5px; overflow:hidden;}
+.of-bar-fill{display:block; height:100%; background:var(--amber); border-radius:5px;}
+.of-bar-val{font-size:12px;}
+.of-table-wrap{overflow-x:auto; margin:0 -4px;}
+.of-table{width:100%; border-collapse:collapse; font-size:14px;}
+.of-table th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); font-weight:700; padding:0 12px 10px; border-bottom:1px solid var(--line);}
+.of-table td{padding:13px 12px; border-bottom:1px solid var(--line-soft); vertical-align:top;}
+.of-table tr:last-child td{border-bottom:0;}
+.of-r{text-align:right;}
+.of-dim{color:var(--ink-soft);}
+.of-strong{font-weight:700;}
+.of-t-item{font-weight:600;}
+.of-t-sub{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+.of-t-note{font-size:12.5px; color:var(--ink-soft); font-style:italic; margin-top:3px;}
+.of-actions{display:inline-flex; gap:7px; justify-content:flex-end; align-items:center;}
+.of-filters{display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
+.of-search{flex:1; min-width:180px; font:inherit; font-size:14px; padding:9px 12px; border:1px solid var(--line); border-radius:10px;}
+.of-seg{display:flex; gap:3px; background:var(--paper); padding:3px; border-radius:9px; border:1px solid var(--line-soft);}
+.of-seg-btn{appearance:none; border:0; background:transparent; cursor:pointer; font:inherit; font-size:13px; font-weight:600; color:var(--ink-soft); padding:6px 13px; border-radius:7px;}
+.of-seg-btn.is-on{background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(21,36,43,.12);}
+.of-empty{text-align:center; padding:34px 20px; color:var(--ink-soft);}
+.of-empty strong{display:block; font-size:15px; color:var(--ink); margin-bottom:4px;}
+.of-empty span{font-size:13.5px;}
+.of-gate{display:grid; place-items:center; min-height:420px; padding:20px;}
+.of-gate-card{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:30px; max-width:380px; width:100%; text-align:center;}
+.of-gate-card h2{margin:0 0 6px; font-size:20px;}
+.of-gate-card p{color:var(--ink-soft); font-size:13.5px; margin:0 0 18px;}
+.of-pin{font:inherit; font-family:var(--mono); font-size:18px; letter-spacing:.3em; text-align:center; width:100%; padding:11px; border:1px solid var(--line); border-radius:10px; margin-bottom:10px;}
+.of-error{color:var(--brick); font-size:13px; margin:2px 0 12px !important; font-weight:600;}
+.of-gate-card .of-btn-primary{width:100%; margin-top:4px;}
+.of-modal{position:fixed; inset:0; background:rgba(21,36,43,.45); display:grid; place-items:center; padding:20px; z-index:20;}
+.of-modal-card{background:var(--surface); border-radius:16px; padding:26px; max-width:430px; width:100%;}
+.of-modal-card h3{margin:0 0 4px; font-size:18px;}
+.of-modal-sub{color:var(--ink-soft); font-size:13.5px; margin:0 0 16px;}
+.of-modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
+.of-set-block{padding:16px 0; border-top:1px solid var(--line-soft);}
+.of-set-block h4{margin:0 0 10px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft);}
+.of-set-row{display:flex; gap:10px;}
+.of-set-row input{flex:1; font:inherit; font-size:15px; padding:10px 12px; border:1px solid var(--line); border-radius:10px;}
+.of-receipt-card{max-width:520px;}
+.of-receipt-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+.of-receipt-head h3{margin:0;}
+.of-receipt-img{width:100%; max-height:70vh; object-fit:contain; border-radius:10px; border:1px solid var(--line); background:var(--paper);}
+@media (max-width:760px){
+  .of-grid{grid-template-columns:1fr;}
+  .of-stats{grid-template-columns:1fr;}
+  .of-tabs{order:3; width:100%; margin:0; justify-content:center;}
+  .of-header{justify-content:space-between;}
+}
+@media (prefers-reduced-motion:reduce){ .of-stamp-paid{animation:none;} .of-btn:active{transform:none;} }
+</style>
+</head>
+<body>
+<div id="root"></div>
 
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useCallback } = React;
+
+/* ============================ CONFIG ============================ */
+/* These are safe to keep here: the publishable key is the public client
+   key and is meant to live in frontend code. Never put the SECRET key here. */
+const SUPABASE_URL = "https://zfygbgdnzsypfnrxcwds.supabase.co";
+const SUPABASE_KEY = "sb_publishable_kLXtcTLPAq2WLoabQ8Ls0w_3FAtR7gd";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const BUCKET = "receipts";
+/* ================================================================ */
+
+const CATS = [
+  { key: "office_supplies", it: "Cancelleria", en: "Office supplies" },
+  { key: "food_drink", it: "Cibo e bevande", en: "Food & drink" },
+  { key: "equipment", it: "Attrezzatura", en: "Equipment" },
+  { key: "software", it: "Software", en: "Software" },
+  { key: "travel", it: "Trasferte", en: "Travel" },
+  { key: "maintenance", it: "Manutenzione", en: "Maintenance" },
+  { key: "other", it: "Altro", en: "Other" },
+];
+
+const STR = {
+  it: {
+    brand:"Cassa Comune", brandSub:"rimborsi del fondo comune", booting:"Apro il registro…", deskCheck:"Controllo lo sportello…",
+    onboardLede:"Il fondo comune per le spese condivise dell'ufficio. Compra ciò che serve, conserva lo scontrino, registra qui la spesa e fatti rimborsare.",
+    yourName:"Il tuo nome", namePh:"es. Giulia Bianchi", enter:"Entra",
+    nameFine:"Il nome resta su questo dispositivo, così non lo riscrivi. Compare sulle spese che registri.",
+    tabFront:"Registra una spesa", tabAcct:"Sportello contabilità", changeName:"Cambia nome", refreshT:"Aggiorna registro",
+    fileTitle:"Registra una spesa", fileSub:"Fatti rimborsare qualcosa che hai comprato per l'ufficio.",
+    category:"Categoria", totalLabel:"Totale dello scontrino (€)", purchaseDate:"Data d'acquisto", receiptPhoto:"Foto dello scontrino",
+    addPhoto:"Aggiungi foto", replacePhoto:"Sostituisci", removePhoto:"Rimuovi", photoHint:"JPG o PNG — compressa in automatico.", compressing:"Comprimo l'immagine…",
+    note:"Nota (facoltativa)", notePh:"Qualcosa che la contabilità deve sapere", fileBtn:"Invia richiesta", filing:"Invio…",
+    invalid:"Scegli una categoria e inserisci un importo per inviare.", flashOk:"Richiesta inviata. È in attesa allo sportello contabilità.",
+    yourClaims:"Le tue spese", yourClaimsSub:"Cosa hai registrato e a che punto è.", owed:"In attesa per te",
+    noneFiled:"Niente di registrato", noneFiledSub:"La tua prima richiesta comparirà qui con il suo stato.",
+    bought:"acquistato il", viewReceipt:"Vedi scontrino", declinedAs:"Rifiutata", refundedOn:"Rimborsata il", by:"da",
+    deskSetup:"Configura lo sportello contabilità", deskTitle:"Sportello contabilità", enterPin:"Inserisci il PIN dello sportello per gestire i rimborsi.",
+    pinSetupP:"Scegli un PIN che solo la contabilità conosce. Protegge il potere di segnare le spese come rimborsate.",
+    newPin:"Nuovo PIN", repeatPin:"Ripeti PIN", unlock:"Sblocca sportello", savePin:"Salva PIN e apri",
+    pinShort:"Usa almeno 4 cifre.", pinMismatch:"I due PIN non coincidono.", pinSaveErr:"Impossibile salvare il PIN. Riprova.", pinWrong:"PIN errato.", pinReadErr:"Impossibile leggere il PIN.",
+    toRefundNow:"Da rimborsare ora", claimsWaiting:"in attesa", refundedToDate:"Rimborsato finora", paidOut:"liquidate",
+    byCategory:"In attesa, per categoria", nothingWaiting:"Niente in attesa.",
+    queueTitle:"In attesa di rimborso", queueSub:"Le più vecchie prima. Rimborsa o rifiuta con una motivazione.",
+    reconciled:"La cassa è in pari", reconciledSub:"Nessuna richiesta in attesa. Le nuove arrivano qui appena inviate.",
+    colFiled:"Inviata", colWho:"Chi", colCat:"Categoria", colAmount:"Importo", colAction:"Azione", colStatus:"Stato",
+    markPaid:"Segna pagata", decline:"Rifiuta", archive:"Archivio", archiveSub:"Ogni richiesta gestita, conservata per la contabilità.",
+    exportCsv:"Esporta CSV", searchPh:"Cerca nome, categoria, nota…", all:"Tutte", paid:"Pagate", declined:"Rifiutate",
+    archiveEmpty:"Ancora niente qui", archiveEmptySub:"Le richieste gestite vengono archiviate qui per consultazione ed esportazione.",
+    declineTitle:"Rifiuta questa richiesta", reasonLabel:"Motivazione (la vedrà il dipendente)", reasonPh:"es. Scontrino mancante",
+    cancel:"Annulla", declineConfirm:"Rifiuta richiesta", noReason:"Nessuna motivazione", receiptTitle:"Scontrino", close:"Chiudi",
+    noReceiptImg:"Nessuna immagine trovata.", loadingReceipt:"Carico lo scontrino…",
+    statusPaid:"Rimborsata", statusDeclined:"Rifiutata", statusPending:"In attesa",
+    footer:"Cassa Comune · importi in euro · registro condiviso tramite Supabase.",
+    remainingBudget:"Budget rimanente", spentOf:"speso su", awaitingPay:"in attesa di pagamento",
+    settings:"Impostazioni", deskSettings:"Impostazioni sportello", changePin:"Cambia PIN", pinChanged:"PIN aggiornato.",
+    budgetLabel:"Budget totale (€)", saveBudget:"Salva budget", budgetSaved:"Budget aggiornato.", save:"Salva", del:"Elimina",
+    deleteTitle:"Eliminare questa voce?", deleteBody:"L'eliminazione è definitiva e rimuove anche lo scontrino. Usala solo per voci inserite per errore.",
+    deleteConfirm:"Elimina definitivamente", deleteT:"Elimina voce", connErr:"Errore di connessione al database. Controlla le policy in Supabase.",
+  },
+  en: {
+    brand:"Office Float", brandSub:"common fund reimbursements", booting:"Opening the ledger…", deskCheck:"Checking the desk…",
+    onboardLede:"The common fund for shared office spending. Buy what the office needs, keep the receipt, file a claim here, and get paid back.",
+    yourName:"Your name", namePh:"e.g. Giulia Bianchi", enter:"Enter",
+    nameFine:"Your name is kept on this device so you don't retype it. It's stamped on the claims you file.",
+    tabFront:"File a claim", tabAcct:"Accounting desk", changeName:"Change name", refreshT:"Refresh ledger",
+    fileTitle:"File a claim", fileSub:"Reimburse yourself for something you bought for the office.",
+    category:"Category", totalLabel:"Total on the receipt (€)", purchaseDate:"Purchase date", receiptPhoto:"Receipt photo",
+    addPhoto:"Add photo", replacePhoto:"Replace", removePhoto:"Remove", photoHint:"JPG or PNG — compressed automatically.", compressing:"Compressing image…",
+    note:"Note (optional)", notePh:"Anything accounting should know", fileBtn:"File claim", filing:"Filing…",
+    invalid:"Pick a category and enter an amount to file.", flashOk:"Claim filed. It's now waiting at the accounting desk.",
+    yourClaims:"Your claims", yourClaimsSub:"What you've filed and where it stands.", owed:"Waiting on you",
+    noneFiled:"Nothing filed yet", noneFiledSub:"Your first claim will show up here with its status.",
+    bought:"bought", viewReceipt:"View receipt", declinedAs:"Declined", refundedOn:"Refunded", by:"by",
+    deskSetup:"Set up the accounting desk", deskTitle:"Accounting desk", enterPin:"Enter the desk PIN to process refunds.",
+    pinSetupP:"Pick a PIN that only accounting staff will know. It guards the power to mark claims as refunded.",
+    newPin:"New PIN", repeatPin:"Repeat PIN", unlock:"Unlock desk", savePin:"Save PIN & open",
+    pinShort:"Use at least 4 digits.", pinMismatch:"The two PINs don't match.", pinSaveErr:"Couldn't save the PIN. Try again.", pinWrong:"Wrong PIN.", pinReadErr:"Couldn't read the PIN.",
+    toRefundNow:"To refund now", claimsWaiting:"waiting", refundedToDate:"Refunded to date", paidOut:"paid out",
+    byCategory:"Waiting, by category", nothingWaiting:"Nothing waiting.",
+    queueTitle:"Waiting to refund", queueSub:"Oldest first. Pay them back, or decline with a reason.",
+    reconciled:"The float is reconciled", reconciledSub:"No claims are waiting. New ones land here the moment they're filed.",
+    colFiled:"Filed", colWho:"Who", colCat:"Category", colAmount:"Amount", colAction:"Action", colStatus:"Status",
+    markPaid:"Mark paid", decline:"Decline", archive:"Archive", archiveSub:"Every processed claim, kept for the books.",
+    exportCsv:"Export CSV", searchPh:"Search name, category, note…", all:"All", paid:"Paid", declined:"Declined",
+    archiveEmpty:"Nothing here yet", archiveEmptySub:"Processed claims will be archived here for reference and export.",
+    declineTitle:"Decline this claim", reasonLabel:"Reason (the employee will see this)", reasonPh:"e.g. No receipt attached",
+    cancel:"Cancel", declineConfirm:"Decline claim", noReason:"No reason given", receiptTitle:"Receipt", close:"Close",
+    noReceiptImg:"No image found.", loadingReceipt:"Loading receipt…",
+    statusPaid:"Refunded", statusDeclined:"Declined", statusPending:"Pending",
+    footer:"Office Float · figures in euro · shared ledger via Supabase.",
+    remainingBudget:"Remaining budget", spentOf:"spent of", awaitingPay:"awaiting payment",
+    settings:"Settings", deskSettings:"Desk settings", changePin:"Change PIN", pinChanged:"PIN updated.",
+    budgetLabel:"Total budget (€)", saveBudget:"Save budget", budgetSaved:"Budget updated.", save:"Save", del:"Delete",
+    deleteTitle:"Delete this entry?", deleteBody:"Deleting is permanent and also removes the receipt. Use it only for entries added by mistake.",
+    deleteConfirm:"Delete permanently", deleteT:"Delete entry", connErr:"Could not reach the database. Check your Supabase policies.",
+  },
+};
+
+const money = new Intl.NumberFormat("it-IT", { style:"currency", currency:"EUR" });
+const fmtDate = (iso, lang) => iso ? new Date(iso).toLocaleDateString(lang==="it"?"it-IT":"en-GB", {day:"2-digit",month:"short",year:"numeric"}) : "—";
+const todayInput = () => new Date().toISOString().slice(0,10);
+const newId = () => "clm_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
+function compressImage(file, maxDim=1400, quality=0.72){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > h && w > maxDim) { h = Math.round(h*maxDim/w); w = maxDim; }
+        else if (h > maxDim) { w = Math.round(w*maxDim/h); h = maxDim; }
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        try { resolve(c.toDataURL("image/jpeg", quality)); } catch(e){ reject(e); }
+      };
+      img.onerror = reject; img.src = reader.result;
+    };
+    reader.onerror = reject; reader.readAsDataURL(file);
+  });
+}
+function dataURLtoBlob(d){
+  const a = d.split(","), mime = a[0].match(/:(.*?);/)[1], bin = atob(a[1]);
+  let n = bin.length; const u8 = new Uint8Array(n);
+  while(n--) u8[n] = bin.charCodeAt(n);
+  return new Blob([u8], {type:mime});
+}
+const receiptUrl = (id) => { try { return sb.storage.from(BUCKET).getPublicUrl(id+".jpg").data.publicUrl; } catch(e){ return ""; } };
+
+/* ---------------------------- data layer ---------------------------- */
+async function fetchClaims(){
+  const { data, error } = await sb.from("claims").select("*").order("submitted_at", {ascending:false});
+  if (error) { console.error("fetchClaims", error); throw error; }
+  return data || [];
+}
+async function fetchSettings(){
+  const { data, error } = await sb.from("settings").select("*").eq("id",1).maybeSingle();
+  if (error) { console.error("fetchSettings", error); }
+  return data || { pin:null, budget:1000 };
+}
+
+/* ====================================================================== */
+
+function App(){
+  const [ready, setReady] = useState(false);
+  const [connErr, setConnErr] = useState(false);
+  const [lang, setLang] = useState(localStorage.getItem("of_lang") || "it");
+  const [me, setMe] = useState(() => { try { return JSON.parse(localStorage.getItem("of_me")); } catch(e){ return null; } });
+  const [nameDraft, setNameDraft] = useState("");
+  const [claims, setClaims] = useState([]);
+  const [settings, setSettings] = useState({ pin:null, budget:1000 });
+  const [tab, setTab] = useState("desk-front");
+  const [busy, setBusy] = useState(false);
+
+  const t = STR[lang];
+  const catLabel = useCallback((k) => { const c = CATS.find(x=>x.key===k); return c ? c[lang] : k; }, [lang]);
+  const budget = num(settings.budget) || 1000;
+
+  const refresh = useCallback(async () => {
+    try { const [c, s] = await Promise.all([fetchClaims(), fetchSettings()]); setClaims(c); setSettings(s); setConnErr(false); }
+    catch(e){ setConnErr(true); }
+  }, []);
+
+  useEffect(() => { (async () => { await refresh(); setReady(true); })(); }, [refresh]);
+  // keep the shared ledger fresh
+  useEffect(() => {
+    const iv = setInterval(refresh, 20000);
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
+    return () => { clearInterval(iv); window.removeEventListener("focus", onFocus); };
+  }, [refresh]);
+
+  const changeLang = (l) => { setLang(l); localStorage.setItem("of_lang", l); };
+  const saveName = () => { const name = nameDraft.trim(); if(!name) return; const n = {name}; setMe(n); localStorage.setItem("of_me", JSON.stringify(n)); };
+
+  const addClaim = async (claim, photoDataUrl) => {
+    setBusy(true);
+    let has_receipt = false;
+    if (photoDataUrl) {
+      try {
+        const blob = dataURLtoBlob(photoDataUrl);
+        const { error } = await sb.storage.from(BUCKET).upload(claim.id+".jpg", blob, {contentType:"image/jpeg", upsert:true});
+        if (!error) has_receipt = true; else console.error("upload", error);
+      } catch(e){ console.error(e); }
+    }
+    const { error } = await sb.from("claims").insert({ ...claim, has_receipt });
+    if (error) console.error("insert", error);
+    await refresh(); setBusy(false);
+  };
+  const patchClaim = async (id, patch) => {
+    setBusy(true);
+    const { error } = await sb.from("claims").update(patch).eq("id", id);
+    if (error) console.error("update", error);
+    await refresh(); setBusy(false);
+  };
+  const deleteClaim = async (id, has_receipt) => {
+    setBusy(true);
+    if (has_receipt) { try { await sb.storage.from(BUCKET).remove([id+".jpg"]); } catch(e){} }
+    const { error } = await sb.from("claims").delete().eq("id", id);
+    if (error) console.error("delete", error);
+    await refresh(); setBusy(false);
+  };
+  const changePin = async (pin) => {
+    const { error } = await sb.from("settings").update({pin}).eq("id",1);
+    if (error) throw error;
+    setSettings(s => ({...s, pin}));
+  };
+  const saveBudget = async (val) => {
+    const n = Math.max(0, num(val));
+    const { error } = await sb.from("settings").update({budget:n}).eq("id",1);
+    if (error) console.error(error);
+    setSettings(s => ({...s, budget:n}));
+  };
+
+  if (!ready) return <div className="of-root"><div className="of-boot">{t.booting}</div></div>;
+  if (!me) return <div className="of-root"><Onboarding t={t} lang={lang} setLang={changeLang} value={nameDraft} onChange={setNameDraft} onSave={saveName} /></div>;
+
+  return (
+    <div className="of-root">
+      <Header t={t} lang={lang} setLang={changeLang} me={me} tab={tab} setTab={setTab}
+        onRename={()=>{ setNameDraft(me.name); localStorage.removeItem("of_me"); setMe(null); }} busy={busy} onRefresh={refresh} />
+      <main className="of-main">
+        {connErr && <div className="of-warn">{t.connErr}</div>}
+        {tab === "desk-front"
+          ? <FrontDesk t={t} lang={lang} catLabel={catLabel} me={me} claims={claims} budget={budget} onAdd={addClaim} busy={busy} />
+          : <AccountingDesk t={t} lang={lang} catLabel={catLabel} me={me} claims={claims} budget={budget} settings={settings}
+              onPatch={patchClaim} onDelete={deleteClaim} onChangePin={changePin} onSaveBudget={saveBudget} busy={busy} />}
+      </main>
+      <footer className="of-foot">{t.footer}</footer>
+    </div>
+  );
+}
+
+function LangSwitch({ lang, setLang }){
+  return (
+    <select className="of-lang" value={lang} onChange={e=>setLang(e.target.value)} aria-label="Language">
+      <option value="it">🇮🇹 IT</option><option value="en">🇬🇧 EN</option>
+    </select>
+  );
+}
+
+function Onboarding({ t, lang, setLang, value, onChange, onSave }){
+  return (
+    <div className="of-onboard">
+      <div className="of-onboard-lang"><LangSwitch lang={lang} setLang={setLang} /></div>
+      <div className="of-onboard-card">
+        <Mark />
+        <h1>{t.brand}</h1>
+        <p className="of-lede">{t.onboardLede}</p>
+        <label className="of-field"><span>{t.yourName}</span>
+          <input autoFocus value={value} placeholder={t.namePh} onChange={e=>onChange(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onSave()} /></label>
+        <button className="of-btn of-btn-primary" onClick={onSave}>{t.enter}</button>
+        <p className="of-fine">{t.nameFine}</p>
+      </div>
+    </div>
+  );
+}
+
+function Header({ t, lang, setLang, me, tab, setTab, onRename, busy, onRefresh }){
+  return (
+    <header className="of-header">
+      <div className="of-brand"><Mark small />
+        <div className="of-brand-text"><strong>{t.brand}</strong><span>{t.brandSub}</span></div></div>
+      <nav className="of-tabs" role="tablist">
+        <button role="tab" aria-selected={tab==="desk-front"} className={"of-tab"+(tab==="desk-front"?" is-on":"")} onClick={()=>setTab("desk-front")}>{t.tabFront}</button>
+        <button role="tab" aria-selected={tab==="desk-acct"} className={"of-tab"+(tab==="desk-acct"?" is-on":"")} onClick={()=>setTab("desk-acct")}>{t.tabAcct}</button>
+      </nav>
+      <div className="of-who">
+        <button className="of-refresh" onClick={onRefresh} title={t.refreshT}>{busy?"…":"↻"}</button>
+        <button className="of-whoami" onClick={onRename} title={t.changeName}>{me.name}</button>
+        <LangSwitch lang={lang} setLang={setLang} />
+      </div>
+    </header>
+  );
+}
+
+function FrontDesk({ t, lang, catLabel, me, claims, budget, onAdd, busy }){
+  const blank = { category_key: CATS[0].key, total:"", purchase_date: todayInput(), note:"" };
+  const [form, setForm] = useState(blank);
+  const [photo, setPhoto] = useState(null);
+  const [compressing, setCompressing] = useState(false);
+  const [flash, setFlash] = useState("");
+  const [viewer, setViewer] = useState(null);
+  const set = (k) => (e) => setForm(f => ({...f, [k]: e.target.value}));
+  const total = Math.max(0, num(String(form.total).replace(",", ".")));
+  const valid = !!form.category_key && total > 0;
+  const paidTotal = claims.filter(c=>c.status==="paid").reduce((s,c)=>s+num(c.total),0);
+  const remaining = budget - paidTotal;
+
+  const pickPhoto = async (e) => {
+    const file = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    setCompressing(true);
+    try { setPhoto(await compressImage(file)); } catch(e){ setPhoto(null); }
+    setCompressing(false);
+  };
+  const submit = async () => {
+    if (!valid || busy) return;
+    const id = newId();
+    const claim = { id, employee: me.name, category_key: form.category_key, total, purchase_date: form.purchase_date,
+      note: form.note.trim(), submitted_at: new Date().toISOString(), status:"pending", resolved_at:null, resolved_by:null, decline_reason:null };
+    await onAdd(claim, photo);
+    setForm(blank); setPhoto(null); setFlash(t.flashOk); setTimeout(()=>setFlash(""), 4000);
+  };
+  const mine = useMemo(() => claims.filter(c=>c.employee===me.name), [claims, me.name]);
+  const owed = mine.filter(c=>c.status==="pending").reduce((s,c)=>s+num(c.total),0);
+
+  return (
+    <React.Fragment>
+      <div className={"of-chip"+(remaining<0?" is-over":"")}><span>{t.remainingBudget}</span><strong className="of-num">{money.format(remaining)}</strong></div>
+      <div className="of-grid">
+        <section className="of-col">
+          <div className="of-card">
+            <div className="of-card-head"><h2>{t.fileTitle}</h2><p>{t.fileSub}</p></div>
+            <div className="of-form">
+              <label className="of-field"><span>{t.category}</span>
+                <select value={form.category_key} onChange={set("category_key")}>{CATS.map(c=><option key={c.key} value={c.key}>{c[lang]}</option>)}</select></label>
+              <label className="of-field"><span>{t.totalLabel}</span>
+                <input type="number" min="0" step="0.01" value={form.total} placeholder="0,00" onChange={set("total")} /></label>
+              <label className="of-field"><span>{t.purchaseDate}</span>
+                <input type="date" value={form.purchase_date} max={todayInput()} onChange={set("purchase_date")} /></label>
+              <div className="of-field"><span>{t.receiptPhoto}</span>
+                {photo ? (
+                  <div className="of-photo"><img src={photo} alt="" onClick={()=>setViewer(photo)} />
+                    <div className="of-photo-actions">
+                      <label className="of-btn of-btn-ghost of-file">{t.replacePhoto}<input type="file" accept="image/*" onChange={pickPhoto} hidden /></label>
+                      <button className="of-btn of-btn-ghost" onClick={()=>setPhoto(null)}>{t.removePhoto}</button>
+                    </div></div>
+                ) : (
+                  <label className="of-drop"><input type="file" accept="image/*" onChange={pickPhoto} hidden />
+                    <span className="of-drop-icon">📷</span><span>{compressing?t.compressing:t.addPhoto}</span><small>{t.photoHint}</small></label>
+                )}
+              </div>
+              <label className="of-field"><span>{t.note}</span>
+                <textarea rows={2} value={form.note} placeholder={t.notePh} onChange={set("note")} /></label>
+              <button className="of-btn of-btn-primary" disabled={!valid||busy||compressing} onClick={submit}>{busy?t.filing:t.fileBtn}</button>
+              {!valid && <p className="of-hint">{t.invalid}</p>}
+              {flash && <p className="of-flash">{flash}</p>}
+            </div>
+          </div>
+        </section>
+        <section className="of-col">
+          <div className="of-card">
+            <div className="of-card-head of-card-head-split">
+              <div><h2>{t.yourClaims}</h2><p>{t.yourClaimsSub}</p></div>
+              <div className="of-owed"><span>{t.owed}</span><strong className="of-num">{money.format(owed)}</strong></div>
+            </div>
+            {mine.length===0 ? <Empty title={t.noneFiled} body={t.noneFiledSub} />
+              : <ul className="of-claims">{mine.map(c=><ClaimCard key={c.id} c={c} t={t} lang={lang} catLabel={catLabel} onView={setViewer} />)}</ul>}
+          </div>
+        </section>
+      </div>
+      {viewer && <ReceiptModal t={t} src={viewer} onClose={()=>setViewer(null)} />}
+    </React.Fragment>
+  );
+}
+
+function ClaimCard({ c, t, lang, catLabel, onView }){
+  return (
+    <li className="of-claim">
+      <div className="of-claim-main">
+        <div className="of-claim-top"><span className="of-cat">{catLabel(c.category_key)}</span><Stamp status={c.status} t={t} /></div>
+        <div className="of-claim-meta">{t.bought} {fmtDate(c.purchase_date, lang)}
+          {c.has_receipt && <React.Fragment> · <button className="of-link" onClick={()=>onView(receiptUrl(c.id))}>{t.viewReceipt}</button></React.Fragment>}</div>
+        {c.note && <div className="of-claim-note">“{c.note}”</div>}
+        {c.status==="declined" && c.decline_reason && <div className="of-claim-declined">{t.declinedAs}: {c.decline_reason}</div>}
+        {c.status==="paid" && <div className="of-claim-paid">{t.refundedOn} {fmtDate(c.resolved_at, lang)} {t.by} {c.resolved_by}</div>}
+      </div>
+      <div className="of-claim-amt of-num">{money.format(num(c.total))}</div>
+    </li>
+  );
+}
+
+function AccountingDesk(props){
+  const { t, settings } = props;
+  const [unlocked, setUnlocked] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [setupA, setSetupA] = useState("");
+  const [setupB, setSetupB] = useState("");
+  const hasPin = !!(settings.pin && String(settings.pin).length);
+
+  const createPin = async () => {
+    setPinError("");
+    if (setupA.length < 4) return setPinError(t.pinShort);
+    if (setupA !== setupB) return setPinError(t.pinMismatch);
+    try { await props.onChangePin(setupA); setUnlocked(true); } catch(e){ setPinError(t.pinSaveErr); }
+  };
+  const tryUnlock = () => {
+    setPinError("");
+    if (String(settings.pin) === pinInput) { setUnlocked(true); setPinInput(""); } else setPinError(t.pinWrong);
+  };
+
+  if (!unlocked) {
+    return (
+      <div className="of-gate"><div className="of-gate-card">
+        <h2>{hasPin ? t.deskTitle : t.deskSetup}</h2>
+        {hasPin ? (
+          <React.Fragment>
+            <p>{t.enterPin}</p>
+            <input className="of-pin" type="password" inputMode="numeric" value={pinInput} placeholder="••••" autoFocus
+              onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&tryUnlock()} />
+            {pinError && <p className="of-error">{pinError}</p>}
+            <button className="of-btn of-btn-primary" onClick={tryUnlock}>{t.unlock}</button>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <p>{t.pinSetupP}</p>
+            <input className="of-pin" type="password" inputMode="numeric" value={setupA} placeholder={t.newPin} onChange={e=>setSetupA(e.target.value)} />
+            <input className="of-pin" type="password" inputMode="numeric" value={setupB} placeholder={t.repeatPin} onChange={e=>setSetupB(e.target.value)} onKeyDown={e=>e.key==="Enter"&&createPin()} />
+            {pinError && <p className="of-error">{pinError}</p>}
+            <button className="of-btn of-btn-primary" onClick={createPin}>{t.savePin}</button>
+          </React.Fragment>
+        )}
+      </div></div>
+    );
+  }
+  return <DeskInner {...props} />;
+}
+
+function DeskInner({ t, lang, catLabel, me, claims, budget, onPatch, onDelete, onChangePin, onSaveBudget, busy }){
+  const [archQuery, setArchQuery] = useState("");
+  const [archStatus, setArchStatus] = useState("all");
+  const [declineFor, setDeclineFor] = useState(null);
+  const [declineText, setDeclineText] = useState("");
+  const [viewer, setViewer] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const pending = useMemo(()=>claims.filter(c=>c.status==="pending").slice().sort((a,b)=>String(a.submitted_at).localeCompare(String(b.submitted_at))),[claims]);
+  const resolved = useMemo(()=>claims.filter(c=>c.status!=="pending"),[claims]);
+  const pendingTotal = pending.reduce((s,c)=>s+num(c.total),0);
+  const paidClaims = claims.filter(c=>c.status==="paid");
+  const paidTotal = paidClaims.reduce((s,c)=>s+num(c.total),0);
+  const remaining = budget - paidTotal;
+  const spentPct = budget>0 ? Math.min(100,(paidTotal/budget)*100) : 0;
+
+  const byCat = useMemo(()=>{ const m={}; pending.forEach(c=>m[c.category_key]=(m[c.category_key]||0)+num(c.total));
+    const arr=Object.entries(m).sort((a,b)=>b[1]-a[1]); return {arr, max: arr.length?arr[0][1]:1}; },[pending]);
+
+  const markPaid = (c) => onPatch(c.id, {status:"paid", resolved_at:new Date().toISOString(), resolved_by:me.name});
+  const confirmDecline = () => { if(!declineFor) return;
+    onPatch(declineFor.id, {status:"declined", resolved_at:new Date().toISOString(), resolved_by:me.name, decline_reason: declineText.trim()||t.noReason});
+    setDeclineFor(null); setDeclineText(""); };
+  const doDelete = () => { if(!confirmDel) return; onDelete(confirmDel.id, confirmDel.has_receipt); setConfirmDel(null); };
+
+  const filteredArchive = useMemo(()=>{ const q=archQuery.trim().toLowerCase();
+    return resolved.filter(c=>archStatus==="all"?true:c.status===archStatus)
+      .filter(c=>!q || String(c.employee).toLowerCase().includes(q) || catLabel(c.category_key).toLowerCase().includes(q) || String(c.note||"").toLowerCase().includes(q))
+      .sort((a,b)=>String(b.resolved_at||"").localeCompare(String(a.resolved_at||""))); },[resolved,archQuery,archStatus,catLabel]);
+
+  const exportCsv = () => {
+    const head=["id","submitted","purchase_date","employee","category","total_eur","status","resolved_at","resolved_by","has_receipt","note","decline_reason"];
+    const esc=(v)=>{ const s=v==null?"":String(v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+    const rows=claims.slice().sort((a,b)=>String(b.submitted_at).localeCompare(String(a.submitted_at))).map(c=>
+      [c.id,c.submitted_at,c.purchase_date,c.employee,catLabel(c.category_key),c.total,c.status,c.resolved_at||"",c.resolved_by||"",c.has_receipt?"yes":"no",c.note||"",c.decline_reason||""].map(esc).join(","));
+    const csv=[head.join(","),...rows].join("\n");
+    const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}), url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download="cassa-comune-"+todayInput()+".csv"; a.click(); URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="of-desk">
+      <div className="of-budget">
+        <div className="of-budget-row">
+          <div><span className="of-budget-cap">{t.remainingBudget}</span>
+            <strong className={"of-num of-budget-big"+(remaining<0?" of-brick":"")}>{money.format(remaining)}</strong></div>
+          <button className="of-gear" onClick={()=>setSettingsOpen(true)} title={t.deskSettings}>⚙ {t.settings}</button>
+        </div>
+        <div className="of-budget-bar"><span style={{width:spentPct+"%"}} className={remaining<0?"is-over":""} /></div>
+        <div className="of-budget-sub">{money.format(paidTotal)} {t.spentOf} {money.format(budget)} · {money.format(pendingTotal)} {t.awaitingPay}</div>
+      </div>
+
+      <div className="of-stats">
+        <div className="of-stat"><span>{t.toRefundNow}</span><strong className="of-num of-amber">{money.format(pendingTotal)}</strong><small>{pending.length} {t.claimsWaiting}</small></div>
+        <div className="of-stat"><span>{t.refundedToDate}</span><strong className="of-num of-green">{money.format(paidTotal)}</strong><small>{paidClaims.length} {t.paidOut}</small></div>
+        <div className="of-stat of-stat-bars"><span>{t.byCategory}</span>
+          {byCat.arr.length===0 ? <small>{t.nothingWaiting}</small> :
+            <ul className="of-bars">{byCat.arr.map(([k,v])=>(
+              <li key={k}><span className="of-bar-label">{catLabel(k)}</span>
+                <span className="of-bar-track"><span className="of-bar-fill" style={{width:(v/byCat.max)*100+"%"}} /></span>
+                <span className="of-bar-val of-num">{money.format(v)}</span></li>))}</ul>}
+        </div>
+      </div>
+
+      <div className="of-card">
+        <div className="of-card-head"><h2>{t.queueTitle}</h2><p>{t.queueSub}</p></div>
+        {pending.length===0 ? <Empty title={t.reconciled} body={t.reconciledSub} /> :
+          <div className="of-table-wrap"><table className="of-table">
+            <thead><tr><th>{t.colFiled}</th><th>{t.colWho}</th><th>{t.colCat}</th><th className="of-r">{t.colAmount}</th><th className="of-r">{t.colAction}</th></tr></thead>
+            <tbody>{pending.map(c=>(
+              <tr key={c.id}>
+                <td className="of-num of-dim">{fmtDate(c.submitted_at, lang)}</td>
+                <td>{c.employee}</td>
+                <td><div className="of-t-item">{catLabel(c.category_key)}</div>
+                  {c.has_receipt && <button className="of-link" onClick={()=>setViewer(receiptUrl(c.id))}>{t.viewReceipt}</button>}
+                  {c.note && <div className="of-t-note">“{c.note}”</div>}</td>
+                <td className="of-r of-num of-strong">{money.format(num(c.total))}</td>
+                <td className="of-r"><div className="of-actions">
+                  <button className="of-btn of-btn-pay" disabled={busy} onClick={()=>markPaid(c)}>{t.markPaid}</button>
+                  <button className="of-btn of-btn-ghost" disabled={busy} onClick={()=>setDeclineFor(c)}>{t.decline}</button>
+                  <button className="of-trash" disabled={busy} title={t.deleteT} onClick={()=>setConfirmDel(c)}>🗑</button>
+                </div></td>
+              </tr>))}</tbody>
+          </table></div>}
+      </div>
+
+      <div className="of-card">
+        <div className="of-card-head of-card-head-split">
+          <div><h2>{t.archive}</h2><p>{t.archiveSub}</p></div>
+          <button className="of-btn of-btn-ghost" onClick={exportCsv}>{t.exportCsv}</button>
+        </div>
+        <div className="of-filters">
+          <input className="of-search" value={archQuery} placeholder={t.searchPh} onChange={e=>setArchQuery(e.target.value)} />
+          <div className="of-seg">{[["all",t.all],["paid",t.paid],["declined",t.declined]].map(([k,lbl])=>(
+            <button key={k} className={"of-seg-btn"+(archStatus===k?" is-on":"")} onClick={()=>setArchStatus(k)}>{lbl}</button>))}</div>
+        </div>
+        {filteredArchive.length===0 ? <Empty title={t.archiveEmpty} body={t.archiveEmptySub} /> :
+          <div className="of-table-wrap"><table className="of-table">
+            <thead><tr><th>{t.colFiled}</th><th>{t.colWho}</th><th>{t.colCat}</th><th className="of-r">{t.colAmount}</th><th>{t.colStatus}</th><th className="of-r"></th></tr></thead>
+            <tbody>{filteredArchive.map(c=>(
+              <tr key={c.id}>
+                <td className="of-num of-dim">{fmtDate(c.resolved_at, lang)}</td>
+                <td>{c.employee}</td>
+                <td><div className="of-t-item">{catLabel(c.category_key)}</div>
+                  <div className="of-t-sub">{c.status==="declined"&&c.decline_reason ? c.decline_reason : t.by+" "+c.resolved_by}</div>
+                  {c.has_receipt && <button className="of-link" onClick={()=>setViewer(receiptUrl(c.id))}>{t.viewReceipt}</button>}</td>
+                <td className="of-r of-num of-strong">{money.format(num(c.total))}</td>
+                <td><Stamp status={c.status} t={t} small /></td>
+                <td className="of-r"><button className="of-trash" disabled={busy} title={t.deleteT} onClick={()=>setConfirmDel(c)}>🗑</button></td>
+              </tr>))}</tbody>
+          </table></div>}
+      </div>
+
+      {declineFor && (
+        <div className="of-modal" onClick={()=>setDeclineFor(null)}>
+          <div className="of-modal-card" onClick={e=>e.stopPropagation()}>
+            <h3>{t.declineTitle}</h3>
+            <p className="of-modal-sub">{declineFor.employee} · {catLabel(declineFor.category_key)} · <span className="of-num">{money.format(num(declineFor.total))}</span></p>
+            <label className="of-field"><span>{t.reasonLabel}</span>
+              <textarea rows={3} autoFocus value={declineText} placeholder={t.reasonPh} onChange={e=>setDeclineText(e.target.value)} /></label>
+            <div className="of-modal-actions">
+              <button className="of-btn of-btn-ghost" onClick={()=>setDeclineFor(null)}>{t.cancel}</button>
+              <button className="of-btn of-btn-danger" onClick={confirmDecline}>{t.declineConfirm}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDel && (
+        <div className="of-modal" onClick={()=>setConfirmDel(null)}>
+          <div className="of-modal-card" onClick={e=>e.stopPropagation()}>
+            <h3>{t.deleteTitle}</h3>
+            <p className="of-modal-sub">{confirmDel.employee} · {catLabel(confirmDel.category_key)} · <span className="of-num">{money.format(num(confirmDel.total))}</span></p>
+            <p className="of-warn">{t.deleteBody}</p>
+            <div className="of-modal-actions">
+              <button className="of-btn of-btn-ghost" onClick={()=>setConfirmDel(null)}>{t.cancel}</button>
+              <button className="of-btn of-btn-danger" onClick={doDelete}>{t.deleteConfirm}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {settingsOpen && <SettingsModal t={t} budget={budget} onChangePin={onChangePin} onSaveBudget={onSaveBudget} onClose={()=>setSettingsOpen(false)} />}
+      {viewer && <ReceiptModal t={t} src={viewer} onClose={()=>setViewer(null)} />}
+    </div>
+  );
+}
+
+function SettingsModal({ t, budget, onChangePin, onSaveBudget, onClose }){
+  const [npA, setNpA] = useState("");
+  const [npB, setNpB] = useState("");
+  const [pinMsg, setPinMsg] = useState("");
+  const [pinErr, setPinErr] = useState("");
+  const [bud, setBud] = useState(String(budget));
+  const [budMsg, setBudMsg] = useState("");
+  const savePin = async () => {
+    setPinErr(""); setPinMsg("");
+    if (npA.length < 4) return setPinErr(t.pinShort);
+    if (npA !== npB) return setPinErr(t.pinMismatch);
+    try { await onChangePin(npA); setNpA(""); setNpB(""); setPinMsg(t.pinChanged); } catch(e){ setPinErr(t.pinSaveErr); }
+  };
+  const saveBud = async () => { setBudMsg(""); await onSaveBudget(bud); setBudMsg(t.budgetSaved); };
+  return (
+    <div className="of-modal" onClick={onClose}>
+      <div className="of-modal-card" onClick={e=>e.stopPropagation()}>
+        <div className="of-receipt-head"><h3>{t.deskSettings}</h3><button className="of-btn of-btn-ghost" onClick={onClose}>{t.close}</button></div>
+        <div className="of-set-block"><h4>{t.budgetLabel}</h4>
+          <div className="of-set-row"><input type="number" min="0" step="1" value={bud} onChange={e=>setBud(e.target.value)} />
+            <button className="of-btn of-btn-primary" onClick={saveBud}>{t.save}</button></div>
+          {budMsg && <p className="of-flash">{budMsg}</p>}</div>
+        <div className="of-set-block"><h4>{t.changePin}</h4>
+          <input className="of-pin" type="password" inputMode="numeric" value={npA} placeholder={t.newPin} onChange={e=>setNpA(e.target.value)} />
+          <input className="of-pin" type="password" inputMode="numeric" value={npB} placeholder={t.repeatPin} onChange={e=>setNpB(e.target.value)} />
+          {pinErr && <p className="of-error">{pinErr}</p>}
+          {pinMsg && <p className="of-flash">{pinMsg}</p>}
+          <button className="of-btn of-btn-primary" onClick={savePin}>{t.save}</button></div>
+      </div>
+    </div>
+  );
+}
+
+function ReceiptModal({ t, src, onClose }){
+  return (
+    <div className="of-modal" onClick={onClose}>
+      <div className="of-modal-card of-receipt-card" onClick={e=>e.stopPropagation()}>
+        <div className="of-receipt-head"><h3>{t.receiptTitle}</h3><button className="of-btn of-btn-ghost" onClick={onClose}>{t.close}</button></div>
+        {!src ? <p className="of-dim">{t.noReceiptImg}</p> : <img className="of-receipt-img" src={src} alt={t.receiptTitle} />}
+      </div>
+    </div>
+  );
+}
+
+function Stamp({ status, t, small }){
+  const label = status==="paid"?t.statusPaid:status==="declined"?t.statusDeclined:t.statusPending;
+  return <span className={"of-stamp of-stamp-"+status+(small?" of-stamp-sm":"")}>{label}</span>;
+}
+function Empty({ title, body }){ return <div className="of-empty"><strong>{title}</strong><span>{body}</span></div>; }
+function Mark({ small }){ return <span className={"of-mark"+(small?" of-mark-sm":"")} aria-hidden>€</span>; }
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
