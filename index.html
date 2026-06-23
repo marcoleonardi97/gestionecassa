@@ -16,8 +16,8 @@ window.__ofErr = function (msg) {
 window.addEventListener("error", function (e) { window.__ofErr(e.message + (e.filename ? "  @ " + e.filename + ":" + e.lineno : "")); });
 window.addEventListener("unhandledrejection", function (e) { window.__ofErr("Promise: " + (e.reason && e.reason.message ? e.reason.message : e.reason)); });
 </script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 html,body{margin:0;padding:0;background:#EAEEEC;}
@@ -163,6 +163,14 @@ html,body{margin:0;padding:0;background:#EAEEEC;}
 .of-empty{text-align:center; padding:34px 20px; color:var(--ink-soft);}
 .of-empty strong{display:block; font-size:15px; color:var(--ink); margin-bottom:4px;}
 .of-empty span{font-size:13.5px;}
+.of-guide-sec{padding:16px 0; border-top:1px solid var(--line-soft);}
+.of-guide-sec:first-of-type{border-top:0;}
+.of-guide-sec h3{margin:0 0 6px; font-size:15px; letter-spacing:-.01em;}
+.of-guide-sec p{margin:0 0 8px; color:var(--ink-soft); font-size:14px;}
+.of-guide-list{margin:6px 0 10px; padding-left:18px; color:var(--ink-soft); font-size:14px;}
+.of-guide-list li{margin:3px 0;}
+.of-guide-note{font-size:13px !important; background:var(--paper); border:1px solid var(--line); border-radius:9px; padding:10px 12px; color:var(--ink) !important;}
+.of-guide-ref{font-size:12px; color:var(--dim); margin:10px 0 0;}
 .of-gate{display:grid; place-items:center; min-height:420px; padding:20px;}
 .of-gate-card{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:30px; max-width:380px; width:100%; text-align:center;}
 .of-gate-card h2{margin:0 0 6px; font-size:20px;}
@@ -192,7 +200,11 @@ html,body{margin:0;padding:0;background:#EAEEEC;}
 
 <script>
 /* Pre-compiled from JSX (classic React runtime). Edit CONFIG values near the top if needed. */
-/* @jsxRuntime classic */
+(function(){
+  if (!window.React || !window.ReactDOM || !(window.supabase && window.supabase.createClient)) {
+    window.__ofErr('Impossibile caricare gli script esterni (React/Supabase).\n\nQuesta \u00e8 un\u2019anteprima senza accesso a internet. Apri il file direttamente nel browser (doppio clic) oppure pubblicalo online (GitHub Pages): l\u00ec funziona normalmente.\n\nCould not load external scripts. Open this file in your browser or publish it online.');
+    return;
+  }
 const {
   useState,
   useEffect,
@@ -240,8 +252,8 @@ const CATS = [{
   en: "Materials"
 }, {
   key: "food_drink",
-  it: "Cibo e bevande",
-  en: "Food & drink"
+  it: "Spedizione",
+  en: "Shipping"
 }, {
   key: "equipment",
   it: "Attrezzatura",
@@ -252,8 +264,8 @@ const CATS = [{
   en: "Software"
 }, {
   key: "travel",
-  it: "Spedizione",
-  en: "Shipping"
+  it: "Trasferte",
+  en: "Travel"
 }, {
   key: "maintenance",
   it: "Manutenzione",
@@ -278,10 +290,11 @@ const STR = {
     nameFine: "Il nome resta su questo dispositivo. Il PIN di accesso lo conosce solo chi lavora qui.",
     tabFront: "Registra una spesa",
     tabAcct: "Sportello contabilità",
+    tabGuide: "Guida",
     changeName: "Esci / cambia nome",
     refreshT: "Aggiorna registro",
     fileTitle: "Registra una spesa",
-    fileSub: "Controlla se la tua spesa è rimborsabile sulla guida.",
+    fileSub: "Fatti rimborsare qualcosa che hai comprato per l'ufficio.",
     category: "Categoria",
     totalLabel: "Totale dello scontrino (€)",
     purchaseDate: "Data d'acquisto",
@@ -379,7 +392,7 @@ const STR = {
   },
   en: {
     brand: "Petty Cash Fund CNR-ISP Messina",
-    brandSub: "petty cash fund reimbursements",
+    brandSub: "petty cash reimbursements",
     booting: "Opening the ledger…",
     accessIntro: "Enter your name and the access PIN to open the portal.",
     yourName: "Your name",
@@ -391,10 +404,11 @@ const STR = {
     nameFine: "Your name stays on this device. The access PIN is known only to people who work here.",
     tabFront: "File a claim",
     tabAcct: "Accounting desk",
+    tabGuide: "Guide",
     changeName: "Sign out / change name",
     refreshT: "Refresh ledger",
     fileTitle: "File a claim",
-    fileSub: "Check if your expense if reimbursable in the manual.",
+    fileSub: "Reimburse yourself for something you bought for the office.",
     category: "Category",
     totalLabel: "Total on the receipt (€)",
     purchaseDate: "Purchase date",
@@ -471,7 +485,7 @@ const STR = {
     statusPaid: "Refunded",
     statusDeclined: "Declined",
     statusPending: "Pending",
-    footer: "Office Float · figures in euro · shared ledger via Supabase.",
+    footer: "Petty Cash Fund CNR-ISP Messina · figures in euro · shared ledger via Supabase.",
     remainingBudget: "Remaining budget",
     spentOf: "spent of",
     awaitingPay: "awaiting payment",
@@ -489,6 +503,38 @@ const STR = {
     deleteConfirm: "Delete permanently",
     deleteT: "Delete entry",
     connErr: "Could not reach the database. Check your Supabase policies."
+  }
+};
+const MANUAL = {
+  it: {
+    title: "Guida rapida",
+    intro: "Come funziona il fondo economale e quali spese puoi farti rimborsare. Per le regole complete vedi il Regolamento di amministrazione, contabilità e finanza del CNR (artt. 18–22).",
+    whatTitle: "Quali spese si possono rimborsare",
+    whatIntro: "Solo piccole spese sostenute per l'ufficio e documentate da scontrino o ricevuta. Rientrano in particolare:",
+    whatList: ["Spese d'ufficio e cancelleria", "Spese casuali", "Piccole riparazioni e manutenzioni ordinarie di mobili e locali", "Spese postali", "Funzionamento degli automezzi", "Libri, giornali e pubblicazioni periodiche", "Missioni e relativi anticipi", "Spese di rappresentanza", "Materiali di consumo di laboratorio", "Seminari e conferenze", "Spese per le quali è difficile usare altre forme di pagamento"],
+    whatNote: "Conserva sempre lo scontrino o la ricevuta: senza documento la spesa non è rimborsabile. Ogni spesa deve restare entro il limite unitario previsto dalla legge (D.L. 138/2011, art. 2, c. 4-ter) e il fondo non può superare il tetto annuale fissato dal CdA. Per l'importo massimo aggiornato chiedi all'ufficio ragioneria o all'economo.",
+    fileTitle: "Registrare una spesa (dipendente)",
+    fileBody: "Apri «Registra una spesa», scegli la categoria, inserisci il totale dello scontrino e la data d'acquisto, allega la foto dello scontrino e aggiungi una nota se serve, poi premi «Invia richiesta». La trovi in «Le tue spese» con lo stato: In attesa, Rimborsata oppure Rifiutata con la motivazione.",
+    acctTitle: "Gestire i rimborsi (contabilità)",
+    acctBody: "Apri «Sportello contabilità» (serve il PIN). In alto vedi il budget rimanente e lo speso. Nella coda «In attesa di rimborso» apri lo scontrino, premi «Segna pagata» per autorizzare il rimborso oppure «Rifiuta» indicando il motivo. Tutto resta nell'Archivio, ricercabile ed esportabile in CSV per la rendicontazione e per il registro cronologico delle operazioni.",
+    ugovTitle: "Registrazione contabile in U-GOV",
+    ugovBody: "Il rimborso va poi registrato dall'economo in U-GOV: Ciclo Acquisti → Generico di Uscita → Crea nuovo, con metodo di pagamento «Fondo Economale» (fondo CORSI_AUT), completando testata, righe di dettaglio e scritture. Il registro si verifica da Fondo economale → Stampe → Stampa registro. Questo portale tiene traccia delle richieste e dei giustificativi; la registrazione formale resta nel gestionale.",
+    ref: "Riferimenti: CNR – Regolamento di amministrazione, contabilità e finanza (versione novembre 2024), artt. 18–22; procedura U-GOV «Acquisto via Fondo Economale»."
+  },
+  en: {
+    title: "Quick guide",
+    intro: "How the common fund works and which expenses you can claim back. For the full rules, see the CNR administration, accounting and finance regulation (art. 18–22).",
+    whatTitle: "Which expenses can be reimbursed",
+    whatIntro: "Only small expenses made for the office and backed by a receipt. These include in particular:",
+    whatList: ["Office supplies and stationery", "Incidental expenses", "Small repairs and ordinary maintenance of furniture and premises", "Postal costs", "Running costs of office vehicles", "Books, newspapers and periodicals", "Work trips and related advances", "Representation expenses", "Laboratory consumables", "Seminars and conferences", "Expenses for which other payment methods are impractical"],
+    whatNote: "Always keep the receipt: without it the expense cannot be reimbursed. Each expense must stay within the per-item legal cash limit (D.L. 138/2011, art. 2, c. 4-ter) and the fund cannot exceed the annual ceiling set by the Board. Ask the accounting office or the economo for the current maximum amount.",
+    fileTitle: "Filing an expense (employee)",
+    fileBody: "Open “File a claim”, pick the category, enter the receipt total and purchase date, attach a photo of the receipt and add a note if useful, then press “File claim”. It appears under “Your claims” with its status: Pending, Refunded, or Declined with a reason.",
+    acctTitle: "Processing refunds (accounting)",
+    acctBody: "Open “Accounting desk” (PIN required). The remaining budget and amount spent are shown at the top. In the “Waiting to refund” queue, open the receipt, press “Mark paid” to authorise the refund or “Decline” with a reason. Everything stays in the Archive, searchable and exportable to CSV for the books and the chronological register of operations.",
+    ugovTitle: "Posting it in U-GOV",
+    ugovBody: "The refund is then posted by the economo in U-GOV: Purchase Cycle → Generic Outflow → Create new, with payment method “Fondo Economale” (fund CORSI_AUT), completing the header, detail lines and entries. The register is checked under Fondo economale → Stampe → Stampa registro. This portal tracks the claims and receipts; the formal posting stays in the management system.",
+    ref: "References: CNR – administration, accounting and finance regulation (November 2024 version), art. 18–22; U-GOV procedure “Purchase via Petty-Cash Fund”."
   }
 };
 const money = new Intl.NumberFormat("it-IT", {
@@ -771,7 +817,10 @@ function App() {
     className: "of-main"
   }, connErr && /*#__PURE__*/React.createElement("div", {
     className: "of-warn"
-  }, t.connErr), tab === "desk-front" ? /*#__PURE__*/React.createElement(FrontDesk, {
+  }, t.connErr), tab === "guide" ? /*#__PURE__*/React.createElement(GuidePage, {
+    t: t,
+    lang: lang
+  }) : tab === "desk-front" ? /*#__PURE__*/React.createElement(FrontDesk, {
     t: t,
     lang: lang,
     catLabel: catLabel,
@@ -902,7 +951,12 @@ function Header({
     "aria-selected": tab === "desk-acct",
     className: "of-tab" + (tab === "desk-acct" ? " is-on" : ""),
     onClick: () => setTab("desk-acct")
-  }, t.tabAcct)), /*#__PURE__*/React.createElement("div", {
+  }, t.tabAcct), /*#__PURE__*/React.createElement("button", {
+    role: "tab",
+    "aria-selected": tab === "guide",
+    className: "of-tab" + (tab === "guide" ? " is-on" : ""),
+    onClick: () => setTab("guide")
+  }, t.tabGuide)), /*#__PURE__*/React.createElement("div", {
     className: "of-who"
   }, /*#__PURE__*/React.createElement("button", {
     className: "of-refresh",
@@ -1611,6 +1665,35 @@ function SettingsModal({
     onClick: saveDesk
   }, t.save))));
 }
+function GuidePage({
+  t,
+  lang
+}) {
+  const m = MANUAL[lang] || MANUAL.it;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "of-guide"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "of-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "of-card-head"
+  }, /*#__PURE__*/React.createElement("h2", null, m.title), /*#__PURE__*/React.createElement("p", null, m.intro)), /*#__PURE__*/React.createElement("div", {
+    className: "of-guide-sec"
+  }, /*#__PURE__*/React.createElement("h3", null, m.whatTitle), /*#__PURE__*/React.createElement("p", null, m.whatIntro), /*#__PURE__*/React.createElement("ul", {
+    className: "of-guide-list"
+  }, m.whatList.map((x, i) => /*#__PURE__*/React.createElement("li", {
+    key: i
+  }, x))), /*#__PURE__*/React.createElement("p", {
+    className: "of-guide-note"
+  }, m.whatNote)), /*#__PURE__*/React.createElement("div", {
+    className: "of-guide-sec"
+  }, /*#__PURE__*/React.createElement("h3", null, m.fileTitle), /*#__PURE__*/React.createElement("p", null, m.fileBody)), /*#__PURE__*/React.createElement("div", {
+    className: "of-guide-sec"
+  }, /*#__PURE__*/React.createElement("h3", null, m.acctTitle), /*#__PURE__*/React.createElement("p", null, m.acctBody)), /*#__PURE__*/React.createElement("div", {
+    className: "of-guide-sec"
+  }, /*#__PURE__*/React.createElement("h3", null, m.ugovTitle), /*#__PURE__*/React.createElement("p", null, m.ugovBody)), /*#__PURE__*/React.createElement("p", {
+    className: "of-guide-ref"
+  }, m.ref)));
+}
 function ReceiptModal({
   t,
   src,
@@ -1666,6 +1749,7 @@ try {
 } catch (e) {
   window.__ofErr(e && e.message ? e.message : String(e));
 }
+})();
 </script>
 </body>
 </html>
